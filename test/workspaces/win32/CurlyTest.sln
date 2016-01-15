@@ -1,0 +1,62 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CurlyTest", "CurlyTest.vcxproj", "{AF2A7956-C1CA-4F06-80AB-93E695B8BA55}"
+	ProjectSection(ProjectDependencies) = postProject
+		{24848551-EF4F-47E8-9A9D-EA4D49BC3ECB} = {24848551-EF4F-47E8-9A9D-EA4D49BC3ECB}
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8} = {C8F6C172-56F2-4E76-B5FA-C3B423B31BE8}
+		{3AF54C8A-10BF-4332-9147-F68ED9862033} = {3AF54C8A-10BF-4332-9147-F68ED9862033}
+		{4D9FDFB5-986A-4139-823C-F4EE0ED481A2} = {4D9FDFB5-986A-4139-823C-F4EE0ED481A2}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "third-party", "third-party", "{D7659AD5-4A7C-4BDF-B4E0-E18FCB2C09BD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "googletest", "googletest", "{F44104E0-C728-4075-BB48-ACB1AE1FCE47}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest-md", "..\..\..\third-party\googletest\googletest\msvc\gtest-md.vcxproj", "{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest_main-md", "..\..\..\third-party\googletest\googletest\msvc\gtest_main-md.vcxproj", "{3AF54C8A-10BF-4332-9147-F68ED9862033}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest_prod_test-md", "..\..\..\third-party\googletest\googletest\msvc\gtest_prod_test-md.vcxproj", "{24848551-EF4F-47E8-9A9D-EA4D49BC3ECB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest_unittest-md", "..\..\..\third-party\googletest\googletest\msvc\gtest_unittest-md.vcxproj", "{4D9FDFB5-986A-4139-823C-F4EE0ED481A2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AF2A7956-C1CA-4F06-80AB-93E695B8BA55}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AF2A7956-C1CA-4F06-80AB-93E695B8BA55}.Debug|Win32.Build.0 = Debug|Win32
+		{AF2A7956-C1CA-4F06-80AB-93E695B8BA55}.Release|Win32.ActiveCfg = Release|Win32
+		{AF2A7956-C1CA-4F06-80AB-93E695B8BA55}.Release|Win32.Build.0 = Release|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8}.Debug|Win32.Build.0 = Debug|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8}.Release|Win32.ActiveCfg = Release|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8}.Release|Win32.Build.0 = Release|Win32
+		{3AF54C8A-10BF-4332-9147-F68ED9862033}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3AF54C8A-10BF-4332-9147-F68ED9862033}.Debug|Win32.Build.0 = Debug|Win32
+		{3AF54C8A-10BF-4332-9147-F68ED9862033}.Release|Win32.ActiveCfg = Release|Win32
+		{3AF54C8A-10BF-4332-9147-F68ED9862033}.Release|Win32.Build.0 = Release|Win32
+		{24848551-EF4F-47E8-9A9D-EA4D49BC3ECB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{24848551-EF4F-47E8-9A9D-EA4D49BC3ECB}.Debug|Win32.Build.0 = Debug|Win32
+		{24848551-EF4F-47E8-9A9D-EA4D49BC3ECB}.Release|Win32.ActiveCfg = Release|Win32
+		{24848551-EF4F-47E8-9A9D-EA4D49BC3ECB}.Release|Win32.Build.0 = Release|Win32
+		{4D9FDFB5-986A-4139-823C-F4EE0ED481A2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4D9FDFB5-986A-4139-823C-F4EE0ED481A2}.Debug|Win32.Build.0 = Debug|Win32
+		{4D9FDFB5-986A-4139-823C-F4EE0ED481A2}.Release|Win32.ActiveCfg = Release|Win32
+		{4D9FDFB5-986A-4139-823C-F4EE0ED481A2}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F44104E0-C728-4075-BB48-ACB1AE1FCE47} = {D7659AD5-4A7C-4BDF-B4E0-E18FCB2C09BD}
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8} = {F44104E0-C728-4075-BB48-ACB1AE1FCE47}
+		{3AF54C8A-10BF-4332-9147-F68ED9862033} = {F44104E0-C728-4075-BB48-ACB1AE1FCE47}
+		{24848551-EF4F-47E8-9A9D-EA4D49BC3ECB} = {F44104E0-C728-4075-BB48-ACB1AE1FCE47}
+		{4D9FDFB5-986A-4139-823C-F4EE0ED481A2} = {F44104E0-C728-4075-BB48-ACB1AE1FCE47}
+	EndGlobalSection
+EndGlobal
