@@ -1,7 +1,6 @@
-#include "http.h"
-#if defined(__APPLE__) || defined(_WIN32)
+#include "curly.h"
 #include "curl/curl.h"
-#endif
+
 
 void start_worker_thread_if_needed();
 
@@ -38,12 +37,21 @@ void curly_dispose()
 
 curly_http_transaction* create_transaction(void* data, int size, void* cb)
 {
-    curly_http_transaction* transaction = calloc(1, sizeof(curly_http_transaction));
-    CURL *curl_handle = NULL;
+	CURL *curl_handle = NULL;
+	curly_http_transaction* transaction = (curly_http_transaction*)calloc(1, sizeof(curly_http_transaction));
+	if (transaction == NULL) {
+		return NULL;
+	}
 
 	init_curl_if_needed();
     transaction->data = malloc(size);
-    memcpy(transaction->data, data, size);
+	if (transaction->data == NULL) {
+		return NULL;
+	}
+
+	if (data != NULL) {
+		memcpy(transaction->data, data, size);
+	}
     transaction->size = size;
     transaction->size_left = size;
     curl_handle = curl_easy_init();
@@ -84,12 +92,12 @@ static int poll() {
 			curly_http_transaction* transaction = NULL;
 			int http_response_code = 0;
 			if (cmsg->data.result != CURLE_OK) {
-				printf("Error: result != CURLE_OK", cmsg->data.result);
+				printf("Error: result != CURLE_OK %d", cmsg->data.result);
 				continue;
 			}
 
 			easy_status = curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &transaction);
-			if (easy_status != CURLE_OK) {
+			if (easy_status != CURLE_OK || transaction == NULL) {
 				printf("Error retreiving private pointer");
 				continue;
 			}
@@ -108,12 +116,15 @@ static int poll() {
 static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
 	size_t realsize = size * nmemb;
 	curly_http_transaction *transaction = (curly_http_transaction*)userdata;
-
-	transaction->data = realloc(transaction->data, transaction->size + realsize + 1);
-	if (transaction->data == NULL) {
+	void* realloc_mem = realloc(transaction->data, transaction->size + realsize + 1);
+	
+	if (realloc_mem == NULL) {
 		/* out of memory! */
 		printf("not enough memory (realloc returned NULL)\n");
 		return 0;
+	}
+	else {
+		transaction->data = realloc_mem;
 	}
 
 	memcpy(&(transaction->data[transaction->size]), ptr, realsize);
@@ -155,11 +166,11 @@ curly_http_transaction_handle curly_http_get(char* url, void* cb)
     }
 
     /* we start some action by calling perform right away */
-    status = curl_multi_perform(multi_handle, &no_of_handles_running);
+    /*status = curl_multi_perform(multi_handle, &no_of_handles_running);
     if (status != CURLM_OK) {
        printf("curl_multi_perform failed with error %d", status);
         return NULL;
-    }
+    }*/
 	start_worker_thread_if_needed();
     return transaction;
 }
@@ -225,11 +236,11 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, vo
     }
 
     /* Let's go */
-    status = curl_multi_perform(multi_handle, &no_of_handles_running);
+    /*status = curl_multi_perform(multi_handle, &no_of_handles_running);
     if (status != CURLM_OK) {
 		printf("curl_multi_perform failed with error %d", status);
         return NULL;
-    }
+    }*/
 	start_worker_thread_if_needed();
     return transaction;
 }
@@ -244,7 +255,8 @@ DWORD WINAPI worker_thread(LPVOID lpParam)
 {
 	do {
 		poll();
-		Sleep(100);
+		Sleep(20);
+	//} while (1);
 	} while (no_of_handles_running > 0);
 	printf("stopping worker thread");
 	CloseHandle(thread_handle);
