@@ -1,4 +1,6 @@
 #include "curly.h"
+#include <stdlib.h>
+#include <string.h>
 #include "curl/curl.h"
 
 
@@ -86,7 +88,7 @@ static int poll() {
 
 	curl_multi_perform(multi_handle, &no_of_handles_running);
 
-	while (cmsg = curl_multi_info_read(multi_handle, &msgs_in_queue)) {
+	while ((cmsg = curl_multi_info_read(multi_handle, &msgs_in_queue))) {
 		if (cmsg->msg == CURLMSG_DONE) {
 			CURL *easy_handle = cmsg->easy_handle;
 			curly_http_transaction* transaction = NULL;
@@ -180,7 +182,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
 {
     curly_http_transaction *transaction = (curly_http_transaction*)userp;
     int bytes_read = 0;
-    printf("We are asked to provide at most %d bytes", size*nmemb);
+    printf("We are asked to provide at most %lu bytes", size*nmemb);
     if (size*nmemb < 1)
         return bytes_read;
 
