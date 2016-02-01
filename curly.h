@@ -1,6 +1,6 @@
 /*
  * curly.h
- * Wrapper code for libcurl
+ * Wrapper code for libcurl.
  *
  *  Created on: 31/03/2015
  *      Author: johan
