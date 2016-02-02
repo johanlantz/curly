@@ -1,7 +1,7 @@
 #include "curly.h"
 #include <stdlib.h>
 #include <string.h>
-#include "curl/curl.h"
+#include <curl/curl.h>
 
 
 void start_worker_thread_if_needed();
