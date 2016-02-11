@@ -3,6 +3,10 @@
 #include <string.h>
 #include <curl/curl.h>
 
+#ifndef _WIN32
+#include <time.h>
+#include <pthread.h>
+#endif
 
 void start_worker_thread_if_needed();
 
@@ -92,7 +96,7 @@ static int poll() {
 		if (cmsg->msg == CURLMSG_DONE) {
 			CURL *easy_handle = cmsg->easy_handle;
 			curly_http_transaction* transaction = NULL;
-			int http_response_code = 0;
+			long http_response_code = 0;
 			if (cmsg->data.result != CURLE_OK) {
 				printf("Error: result != CURLE_OK %d", cmsg->data.result);
 				continue;
@@ -103,10 +107,11 @@ static int poll() {
 				printf("Error retreiving private pointer");
 				continue;
 			}
-
+            
 			curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &http_response_code);
+            
 			if (transaction->on_http_request_completed) {
-				transaction->on_http_request_completed(transaction->handle, http_response_code, transaction->data, transaction->size);
+				transaction->on_http_request_completed(transaction->handle, (int)http_response_code, transaction->data, transaction->size);
 			}
 			
 			cleanup_transaction(transaction);
@@ -258,7 +263,6 @@ DWORD WINAPI worker_thread(LPVOID lpParam)
 	do {
 		poll();
 		Sleep(20);
-	//} while (1);
 	} while (no_of_handles_running > 0);
 	printf("stopping worker thread");
 	CloseHandle(thread_handle);
@@ -272,5 +276,26 @@ void start_worker_thread_if_needed() {
 	}
 }
 #else 
-//TODO posix
+pthread_t thread = NULL;
+struct timespec sleep_val = {0, 20000000};
+void *worker_thread(void *threadid)
+{
+    do {
+        poll();
+        nanosleep(&sleep_val, NULL);
+    } while (no_of_handles_running > 0);
+    printf("stopping posix worker thread");
+    pthread_exit(NULL);
+    thread = NULL;
+}
+void start_worker_thread_if_needed() {
+    if (thread == NULL) {
+        int rc = pthread_create(&thread, NULL, worker_thread, NULL);
+        if (rc){
+            printf("ERROR; return code from pthread_create() is %d\n", rc);
+            exit(0);
+        }
+        printf("starting posix worker thread");
+    }
+}
 #endif
