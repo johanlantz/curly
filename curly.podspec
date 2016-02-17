@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = "curly"
-  s.version = "0.1"
+  s.version = "0.2"
   s.summary = "High level libcurl api."
   s.homepage = "https://github.com/johanlantz/curly"
   s.license = { :type => "MIT", :file => "LICENSE" }
