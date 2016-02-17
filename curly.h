@@ -18,8 +18,8 @@ typedef	void(*on_http_request_completed)(curly_http_transaction_handle handle, i
 
 void curly_dispose();
 
-curly_http_transaction_handle curly_http_get(char* url, void* cb);
-curly_http_transaction_handle curly_http_put(char* url, void* data, int size, void* cb);
+curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void* cb);
+curly_http_transaction_handle curly_http_put(char* url, void* data, int size, char* headers_json, void* cb);
 
 #ifdef __cplusplus
 }

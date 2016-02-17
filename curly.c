@@ -19,6 +19,7 @@ typedef struct {
     unsigned size_left;
 	void (*on_http_request_completed)(curly_http_transaction_handle handle, int http_response_code, void* data, int size);
     curly_http_transaction_handle* handle;
+    struct curl_slist* headers;
 } curly_http_transaction;
 
 void init_curl_if_needed()
@@ -67,6 +68,8 @@ curly_http_transaction* create_transaction(void* data, int size, void* cb)
     }
     transaction->handle = curl_handle;
 	transaction->on_http_request_completed = cb;
+    
+    transaction->headers = NULL;
     return transaction;
 }
 
@@ -76,6 +79,9 @@ static void cleanup_transaction(curly_http_transaction* transaction) {
 	if (transaction->data) {
 		free(transaction->data);
 	}
+    if(transaction->headers) {
+        curl_slist_free_all(transaction->headers);
+    }
 	free(transaction);
 }
 
@@ -114,11 +120,46 @@ static int poll() {
 				transaction->on_http_request_completed(transaction->handle, (int)http_response_code, transaction->data, transaction->size);
 			}
 			
+            //TODO, how handle retries of failed transactions
 			cleanup_transaction(transaction);
 		}
 	}
 	return no_of_handles_running;
 }
+
+//Since the json array with the headers is really simple we do the parsing manually instead of adding a dependency
+//to an external parser like jsmn.
+static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* transaction, char* headers_json) {
+    CURLcode easy_status = CURLE_OK;
+    if(headers_json != NULL && strlen(headers_json) > 2) {
+        char* walker_p = headers_json;
+        char header_buf[128];
+        printf("Using customer headers %s", headers_json);
+        if (*walker_p != '[' || *(walker_p + strlen(headers_json) -1) != ']')  {
+            printf("Incorrect json array format. The json string must start with [ and end with ]");
+            return;
+        }
+        walker_p = strstr(headers_json, "\"");
+        while (walker_p != NULL) {
+            char* end_p = strstr(walker_p+1, "\"");
+            if (end_p == NULL) {
+                printf("Error: not closing \" found in array element");
+                return;
+            }
+            walker_p++;
+            strncpy(header_buf, walker_p, end_p-walker_p);
+            header_buf[end_p-walker_p] = '\0';
+            transaction->headers = curl_slist_append(transaction->headers, header_buf);
+            easy_status = curl_easy_setopt(http_get_handle, CURLOPT_HTTPHEADER, transaction->headers);
+            if (easy_status != CURLE_OK) {
+                printf("curl_easy_setopt with param CURLOPT_HTTPHEADER failed with error %d for header=%s", easy_status, header_buf);
+                continue;
+            }
+            walker_p = strstr(end_p+1, "\"");
+        }
+    }
+}
+
 
 static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
 	size_t realsize = size * nmemb;
@@ -141,10 +182,11 @@ static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdat
 	return realsize;
 }
 
-curly_http_transaction_handle curly_http_get(char* url, void* cb)
+curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void* cb)
 {
 	CURLcode easy_status = CURLE_OK;
     CURLMcode status = CURLM_OK;
+    
     curly_http_transaction* transaction = create_transaction(NULL, 0, cb);
     CURL *http_get_handle = transaction->handle;
 
@@ -164,7 +206,9 @@ curly_http_transaction_handle curly_http_get(char* url, void* cb)
 	if (easy_status != CURLE_OK) {
 		printf("Failed setting private data.");
 	}
-
+    
+    add_custom_headers(http_get_handle, transaction, headers_json);
+    
     /* add the individual transfers */
     status = curl_multi_add_handle(multi_handle, http_get_handle);
     if (status != CURLM_OK) {
@@ -172,12 +216,6 @@ curly_http_transaction_handle curly_http_get(char* url, void* cb)
         return NULL;
     }
 
-    /* we start some action by calling perform right away */
-    /*status = curl_multi_perform(multi_handle, &no_of_handles_running);
-    if (status != CURLM_OK) {
-       printf("curl_multi_perform failed with error %d", status);
-        return NULL;
-    }*/
 	start_worker_thread_if_needed();
     return transaction;
 }
@@ -205,7 +243,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
     return bytes_read;
 }
 
-curly_http_transaction_handle curly_http_put(char* url, void* data, int size, void* cb)
+curly_http_transaction_handle curly_http_put(char* url, void* data, int size, char* headers_json, void* cb)
 {
 	CURLcode easy_status = CURLE_OK;
     CURLMcode status = CURLM_OK;
@@ -234,6 +272,8 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, vo
 	if (easy_status != CURLE_OK) {
 		printf("Failed setting private data.");
 	}
+    
+    add_custom_headers(http_put_handle, transaction, headers_json);
 
     /* Add the easy handle to the multi handle */
     status = curl_multi_add_handle(multi_handle, http_put_handle);
