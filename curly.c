@@ -1,6 +1,7 @@
 #include "curly.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <curl/curl.h>
 
 #ifndef _WIN32
@@ -12,6 +13,22 @@ void start_worker_thread_if_needed();
 
 static CURLM *multi_handle = NULL;
 static int no_of_handles_running;
+
+#define LOG_ENABLED    1
+static void CURLY_LOG(const char* format, ...)
+{
+    if (LOG_ENABLED) {
+        va_list argptr;
+        va_start(argptr, format);
+#ifdef __ANDROID__
+        __android_log_vprint(3, "curly", format, argptr);
+#else
+        vfprintf(stderr, format, argptr);
+        vfprintf(stderr, "\n", NULL);
+#endif
+        va_end(argptr);
+    }
+}
 
 typedef struct {
     char* data;
@@ -92,8 +109,8 @@ static int poll() {
 	int msgs_in_queue = 0;
 	int res = curl_multi_wait(multi_handle, NULL, 0, 100, &numfds);
 	if (res != CURLM_OK) {
-		fprintf(stderr, "error: curl_multi_wait() returned %d\n", res);
-		 return EXIT_FAILURE;
+		CURLY_LOG("error: curl_multi_wait() returned %d\n", res);
+        return EXIT_FAILURE;
 	}
 
 	curl_multi_perform(multi_handle, &no_of_handles_running);
@@ -104,13 +121,13 @@ static int poll() {
 			curly_http_transaction* transaction = NULL;
 			long http_response_code = 0;
 			if (cmsg->data.result != CURLE_OK) {
-				printf("Error: result != CURLE_OK %d", cmsg->data.result);
+				CURLY_LOG("Error: result != CURLE_OK %d", cmsg->data.result);
 				continue;
 			}
 
 			easy_status = curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &transaction);
 			if (easy_status != CURLE_OK || transaction == NULL) {
-				printf("Error retreiving private pointer");
+				CURLY_LOG("Error retreiving private pointer");
 				continue;
 			}
             
@@ -134,7 +151,7 @@ static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* tr
     if(headers_json != NULL && strlen(headers_json) > 2) {
         char* walker_p = headers_json;
         char header_buf[128];
-        printf("Using customer headers %s", headers_json);
+        CURLY_LOG("Using customer headers %s", headers_json);
         if (*walker_p != '[' || *(walker_p + strlen(headers_json) -1) != ']')  {
             printf("Incorrect json array format. The json string must start with [ and end with ]");
             return;
@@ -143,7 +160,7 @@ static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* tr
         while (walker_p != NULL) {
             char* end_p = strstr(walker_p+1, "\"");
             if (end_p == NULL) {
-                printf("Error: not closing \" found in array element");
+                CURLY_LOG("Error: not closing \" found in array element");
                 return;
             }
             walker_p++;
@@ -152,7 +169,7 @@ static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* tr
             transaction->headers = curl_slist_append(transaction->headers, header_buf);
             easy_status = curl_easy_setopt(http_get_handle, CURLOPT_HTTPHEADER, transaction->headers);
             if (easy_status != CURLE_OK) {
-                printf("curl_easy_setopt with param CURLOPT_HTTPHEADER failed with error %d for header=%s", easy_status, header_buf);
+                CURLY_LOG("curl_easy_setopt with param CURLOPT_HTTPHEADER failed with error %d for header=%s", easy_status, header_buf);
                 continue;
             }
             walker_p = strstr(end_p+1, "\"");
@@ -168,7 +185,7 @@ static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdat
 	
 	if (realloc_mem == NULL) {
 		/* out of memory! */
-		printf("not enough memory (realloc returned NULL)\n");
+		CURLY_LOG("not enough memory (realloc returned NULL)\n");
 		return 0;
 	}
 	else {
@@ -204,7 +221,7 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
 
 	easy_status = curl_easy_setopt(http_get_handle, CURLOPT_PRIVATE, (void*)transaction); 
 	if (easy_status != CURLE_OK) {
-		printf("Failed setting private data.");
+		CURLY_LOG("Failed setting private data.");
 	}
     
     add_custom_headers(http_get_handle, transaction, headers_json);
@@ -212,7 +229,7 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
     /* add the individual transfers */
     status = curl_multi_add_handle(multi_handle, http_get_handle);
     if (status != CURLM_OK) {
-        printf("curl_multi_add_handle failed with error %d", status);
+        CURLY_LOG("curl_multi_add_handle failed with error %d", status);
         return NULL;
     }
 
@@ -225,7 +242,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
 {
     curly_http_transaction *transaction = (curly_http_transaction*)userp;
     int bytes_read = 0;
-    printf("We are asked to provide at most %lu bytes", size*nmemb);
+    CURLY_LOG("We are asked to provide at most %lu bytes", size*nmemb);
     if (size*nmemb < 1)
         return bytes_read;
 
@@ -270,7 +287,7 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, ch
 	/* Store our transaction pointer */
 	easy_status = curl_easy_setopt(http_put_handle, CURLOPT_PRIVATE, (void*)transaction);
 	if (easy_status != CURLE_OK) {
-		printf("Failed setting private data.");
+		CURLY_LOG("Failed setting private data.");
 	}
     
     add_custom_headers(http_put_handle, transaction, headers_json);
@@ -278,7 +295,7 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, ch
     /* Add the easy handle to the multi handle */
     status = curl_multi_add_handle(multi_handle, http_put_handle);
     if (status != CURLM_OK) {
-		printf("curl_multi_add_handle failed with error %d", status);
+		CURLY_LOG("curl_multi_add_handle failed with error %d", status);
         return NULL;
     }
 
@@ -304,14 +321,14 @@ DWORD WINAPI worker_thread(LPVOID lpParam)
 		poll();
 		Sleep(20);
 	} while (no_of_handles_running > 0);
-	printf("stopping worker thread");
+	CURLY_LOG("stopping worker thread");
 	CloseHandle(thread_handle);
 	thread_handle = NULL;
 	return 0;
 }
 void start_worker_thread_if_needed() {
 	if (thread_handle == NULL) {
-		printf("starting worker thread");
+		CURLY_LOG("starting worker thread");
 		thread_handle = CreateThread(NULL, 0, worker_thread, NULL, 0, NULL);
 	}
 }
@@ -324,7 +341,7 @@ void *worker_thread(void *threadid)
         poll();
         nanosleep(&sleep_val, NULL);
     } while (no_of_handles_running > 0);
-    printf("stopping posix worker thread");
+    CURLY_LOG("stopping posix worker thread");
     pthread_exit(NULL);
     thread = NULL;
 }
@@ -332,10 +349,10 @@ void start_worker_thread_if_needed() {
     if (thread == NULL) {
         int rc = pthread_create(&thread, NULL, worker_thread, NULL);
         if (rc){
-            printf("ERROR; return code from pthread_create() is %d\n", rc);
+            CURLY_LOG("ERROR; return code from pthread_create() is %d\n", rc);
             exit(0);
         }
-        printf("starting posix worker thread");
+        CURLY_LOG("starting posix worker thread");
     }
 }
 #endif
