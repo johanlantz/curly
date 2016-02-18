@@ -10,9 +10,11 @@
 #endif
 
 void start_worker_thread_if_needed();
+void stop_worker_thread();
 
 static CURLM *multi_handle = NULL;
 static int no_of_handles_running;
+static int RUN_THREAD = 0;
 
 #define LOG_ENABLED    1
 static void CURLY_LOG(const char* format, ...)
@@ -23,6 +25,7 @@ static void CURLY_LOG(const char* format, ...)
 #ifdef __ANDROID__
         __android_log_vprint(3, "curly", format, argptr);
 #else
+        vfprintf(stderr, "curly: ", NULL);
         vfprintf(stderr, format, argptr);
         vfprintf(stderr, "\n", NULL);
 #endif
@@ -57,6 +60,7 @@ void curly_dispose()
     curl_multi_cleanup(multi_handle);
     curl_global_cleanup();
 	multi_handle = NULL;
+    stop_worker_thread();
 }
 
 curly_http_transaction* create_transaction(void* data, int size, void* cb)
@@ -207,6 +211,8 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
     curly_http_transaction* transaction = create_transaction(NULL, 0, cb);
     CURL *http_get_handle = transaction->handle;
 
+    CURLY_LOG("Starting http GET to %s", url);
+    
     /* set options */
     curl_easy_setopt(http_get_handle, CURLOPT_URL, url);
 #if defined (DEBUG) || defined (_DEBUG)
@@ -267,6 +273,8 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, ch
     curly_http_transaction* transaction = create_transaction(data, size, cb);
     CURL *http_put_handle = transaction->handle;
 
+    CURLY_LOG("Starting http PUT to %s", url);
+    
     /* set options */
     curl_easy_setopt(http_put_handle, CURLOPT_URL, url);
 #if defined (DEBUG) || defined (_DEBUG)
@@ -299,12 +307,6 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, ch
         return NULL;
     }
 
-    /* Let's go */
-    /*status = curl_multi_perform(multi_handle, &no_of_handles_running);
-    if (status != CURLM_OK) {
-		printf("curl_multi_perform failed with error %d", status);
-        return NULL;
-    }*/
 	start_worker_thread_if_needed();
     return transaction;
 }
@@ -332,27 +334,53 @@ void start_worker_thread_if_needed() {
 		thread_handle = CreateThread(NULL, 0, worker_thread, NULL, 0, NULL);
 	}
 }
+
+void stop_worker_thread() {
+    CURLY_LOG("Stopping worker thread. TODO win32 waitforsingleobject");
+}
 #else 
 pthread_t thread = NULL;
-struct timespec sleep_val = {0, 20000000};
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cv  = PTHREAD_COND_INITIALIZER;;
+
 void *worker_thread(void *threadid)
 {
+    RUN_THREAD = 1;
     do {
         poll();
-        nanosleep(&sleep_val, NULL);
-    } while (no_of_handles_running > 0);
-    CURLY_LOG("stopping posix worker thread");
-    pthread_exit(NULL);
+        if (no_of_handles_running == 0) {
+            CURLY_LOG("Wait for next job");
+            pthread_mutex_lock(&mutex);
+            pthread_cond_wait(&cv, &mutex);
+            CURLY_LOG("Job received");
+            pthread_mutex_unlock(&mutex);
+        }
+    } while (RUN_THREAD);
+    CURLY_LOG("Worker thread about to exit.");
     thread = NULL;
+    pthread_exit(NULL);
+    
 }
 void start_worker_thread_if_needed() {
     if (thread == NULL) {
         int rc = pthread_create(&thread, NULL, worker_thread, NULL);
         if (rc){
-            CURLY_LOG("ERROR; return code from pthread_create() is %d\n", rc);
-            exit(0);
+            CURLY_LOG("ERROR; return code from pthread_create() is %d", rc);
+            return;
+        } else {
+            CURLY_LOG("Starting posix worker thread");
         }
-        CURLY_LOG("starting posix worker thread");
     }
+    pthread_mutex_lock(&mutex);
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&mutex);
+}
+
+void stop_worker_thread() {
+    CURLY_LOG("Stopping posix worker thread");
+    RUN_THREAD = 0;
+    pthread_mutex_lock(&mutex);
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&mutex);
 }
 #endif
