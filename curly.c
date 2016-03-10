@@ -171,12 +171,11 @@ static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* tr
             strncpy(header_buf, walker_p, end_p-walker_p);
             header_buf[end_p-walker_p] = '\0';
             transaction->headers = curl_slist_append(transaction->headers, header_buf);
-            easy_status = curl_easy_setopt(http_get_handle, CURLOPT_HTTPHEADER, transaction->headers);
-            if (easy_status != CURLE_OK) {
-                CURLY_LOG("curl_easy_setopt with param CURLOPT_HTTPHEADER failed with error %d for header=%s", easy_status, header_buf);
-                continue;
-            }
             walker_p = strstr(end_p+1, "\"");
+        }
+        easy_status = curl_easy_setopt(http_get_handle, CURLOPT_HTTPHEADER, transaction->headers);
+        if (easy_status != CURLE_OK) {
+            CURLY_LOG("curl_easy_setopt with param CURLOPT_HTTPHEADER failed with error %d for header=%s", easy_status, header_buf);
         }
     }
 }
