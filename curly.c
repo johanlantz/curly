@@ -338,7 +338,7 @@ void stop_worker_thread() {
     CURLY_LOG("Stopping worker thread. TODO win32 waitforsingleobject");
 }
 #else 
-pthread_t thread = NULL;
+pthread_t thread;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cv  = PTHREAD_COND_INITIALIZER;;
 
@@ -356,12 +356,12 @@ void *worker_thread(void *threadid)
         }
     } while (RUN_THREAD);
     CURLY_LOG("Worker thread about to exit.");
-    thread = NULL;
+    RUN_THREAD = 0;
     pthread_exit(NULL);
     
 }
 void start_worker_thread_if_needed() {
-    if (thread == NULL) {
+    if (RUN_THREAD == 0) {
         int rc = pthread_create(&thread, NULL, worker_thread, NULL);
         if (rc){
             CURLY_LOG("ERROR; return code from pthread_create() is %d", rc);
