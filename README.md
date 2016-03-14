@@ -8,8 +8,11 @@ Simply add curly.h and curly.c to your existing project and use the simple api i
 Unit tests using Google Test are provided as well as a pre-made solution for Visual Studio. 
 
 Do not forget to run:
+
 git submodule init
+
 git submodule update
+
 in order to fetch the submodules needed for the unittests.
 
 ####Visual Studio conversion of gtest solution
