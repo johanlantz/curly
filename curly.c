@@ -16,14 +16,26 @@ static CURLM *multi_handle = NULL;
 static int no_of_handles_running;
 static int RUN_THREAD = 0;
 
-#define LOG_ENABLED    1
+void(*my_log_cb)(char* msg);
+
+#define LOG_ENABLED      1
+#define LOG_MAX_BUF_SIZE 512
 static void CURLY_LOG(const char* format, ...)
 {
+    if (my_log_cb) {
+        char buffer[LOG_MAX_BUF_SIZE];
+        va_list args;
+        va_start (args, format);
+        vsnprintf (buffer,LOG_MAX_BUF_SIZE, format, args);
+        va_end (args);
+        my_log_cb(buffer);
+    }
+    
     if (LOG_ENABLED) {
         va_list argptr;
         va_start(argptr, format);
 #ifdef __ANDROID__
-        __android_log_vprint(3, "curly", format, argptr);
+        __android_log_vprint(1, "curly", format, argptr);
 #else
         vfprintf(stderr, "curly: ", NULL);
         vfprintf(stderr, format, argptr);
@@ -53,6 +65,10 @@ void init_curl_if_needed()
 #endif
 		multi_handle = curl_multi_init();
 	}
+}
+
+void curly_assign_log_callback(void* log_cb) {
+    my_log_cb = log_cb;
 }
 
 void curly_dispose()
@@ -129,7 +145,7 @@ static int poll() {
 				continue;
 			}
 
-			easy_status = curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &transaction);
+			easy_status = curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (void*)&transaction);
 			if (easy_status != CURLE_OK || transaction == NULL) {
 				CURLY_LOG("Error retreiving private pointer");
 				continue;
