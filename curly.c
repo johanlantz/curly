@@ -16,33 +16,74 @@ static CURLM *multi_handle = NULL;
 static int no_of_handles_running;
 static int RUN_THREAD = 0;
 
-void(*my_log_cb)(char* msg);
+struct curly_config my_config = {NULL, 0};
 
-#define LOG_ENABLED      1
 #define LOG_MAX_BUF_SIZE 512
 static void CURLY_LOG(const char* format, ...)
 {
-    if (my_log_cb) {
-        char buffer[LOG_MAX_BUF_SIZE];
+    if (my_config.log_cb) {
+        static char buffer[LOG_MAX_BUF_SIZE];
         va_list args;
         va_start (args, format);
         vsnprintf (buffer,LOG_MAX_BUF_SIZE, format, args);
         va_end (args);
-        my_log_cb(buffer);
+        my_config.log_cb(buffer);
     }
+}
+
+static void dump(const char *text,
+          FILE *stream, unsigned char *ptr, size_t size)
+{
+    size_t i;
+    size_t c;
+    unsigned int width=0x10;
     
-    if (LOG_ENABLED) {
-        va_list argptr;
-        va_start(argptr, format);
-#ifdef __ANDROID__
-        __android_log_vprint(1, "curly", format, argptr);
-#else
-        vfprintf(stderr, "curly: ", NULL);
-        vfprintf(stderr, format, argptr);
-        vfprintf(stderr, "\n", NULL);
-#endif
-        va_end(argptr);
+    fprintf(stream, "%s, %10.10ld bytes (0x%8.8lx)\n",
+            text, (long)size, (long)size);
+    
+    for(i=0; i<size; i+= width) {
+        fprintf(stream, "%4.4lx: ", (long)i);
+        
+        /* show hex to the left */
+        for(c = 0; c < width; c++) {
+            if(i+c < size)
+                fprintf(stream, "%02x ", ptr[i+c]);
+            else
+                fputs("   ", stream);
+        }
+        
+        /* show data on the right */
+        for(c = 0; (c < width) && (i+c < size); c++) {
+            char x = (ptr[i+c] >= 0x20 && ptr[i+c] < 0x80) ? ptr[i+c] : '.';
+            fputc(x, stream);
+        }
+        
+        fputc('\n', stream); /* newline */
     }
+}
+
+static int debug_func(CURL *handle, curl_infotype type,
+             char *data, size_t size,
+             void *userp)
+{
+    (void)handle; /* prevent compiler warning */
+    
+    if (type == CURLINFO_TEXT && (my_config.log_options & CURLY_LOG_INFO)) {
+        CURLY_LOG("Info: %.*s", size, data);
+    } else if (type == CURLINFO_HEADER_OUT && (my_config.log_options & CURLY_LOG_HEADERS)) {
+        CURLY_LOG("Tx header: %.*s", size, data);
+    } else if (type == CURLINFO_HEADER_IN && (my_config.log_options & CURLY_LOG_HEADERS)) {
+        CURLY_LOG("Rx header: %.*s", size, data);
+    } else if (type == CURLINFO_SSL_DATA_IN && (my_config.log_options & CURLY_LOG_DATA)) {
+        CURLY_LOG("Rx SSL data: %.*s", size, data);
+    } else if (type == CURLINFO_SSL_DATA_OUT && (my_config.log_options & CURLY_LOG_DATA)) {
+        CURLY_LOG("Tx SSL data: %.*s", size, data);
+    } else if (type == CURLINFO_DATA_IN && (my_config.log_options & CURLY_LOG_DATA)) {
+        CURLY_LOG("Rx data: %.*s", size, data);
+    } else if (type == CURLINFO_DATA_OUT && (my_config.log_options & CURLY_LOG_DATA)) {
+        CURLY_LOG("Tx data: %.*s", size, data);
+    }
+    return 0;
 }
 
 typedef struct {
@@ -57,22 +98,19 @@ typedef struct {
 void init_curl_if_needed()
 {
 	if (multi_handle == NULL) {
-		//If we need SSL we probably have to use CURL_GLOBAL_SSL later
-#ifdef _WIN32
-		curl_global_init(CURL_GLOBAL_WIN32);
-#else
-		curl_global_init(0);
-#endif
+		curl_global_init(CURL_GLOBAL_ALL);
 		multi_handle = curl_multi_init();
 	}
 }
 
-void curly_assign_log_callback(void* log_cb) {
-    my_log_cb = log_cb;
+void curly_init(curly_config* cfg) {
+    memcpy(&my_config, cfg, sizeof(curly_config));
+    CURLY_LOG("Starting curly \nlog_options=%d and log_cb=0x%p \ndo_not_verify_peer=%d certificate_path=%s", my_config.log_options, my_config.log_cb, my_config.do_not_verify_peer, my_config.certificate_path != NULL ? my_config.certificate_path : "No certificate path provided");
 }
 
 void curly_dispose()
 {
+    memset(&my_config, 0, sizeof(curly_config));
     curl_multi_cleanup(multi_handle);
     curl_global_cleanup();
 	multi_handle = NULL;
@@ -230,9 +268,15 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
     
     /* set options */
     curl_easy_setopt(http_get_handle, CURLOPT_URL, url);
-#if defined (DEBUG) || defined (_DEBUG)
-    curl_easy_setopt(http_get_handle, CURLOPT_VERBOSE, 1L);
-#endif
+
+    if (my_config.do_not_verify_peer) {
+        curl_easy_setopt(http_get_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+    }
+
+    if(my_config.log_options != 0) {
+        curl_easy_setopt(http_get_handle, CURLOPT_DEBUGFUNCTION, &debug_func);
+        curl_easy_setopt(http_get_handle, CURLOPT_VERBOSE, 1L);
+    }
 
 	/* send all data to this function  */
 	curl_easy_setopt(http_get_handle, CURLOPT_WRITEFUNCTION, &write_callback);
@@ -292,9 +336,16 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, ch
     
     /* set options */
     curl_easy_setopt(http_put_handle, CURLOPT_URL, url);
-#if defined (DEBUG) || defined (_DEBUG)
-    curl_easy_setopt(http_put_handle, CURLOPT_VERBOSE, 1L);
-#endif
+    
+    if(my_config.log_options != 0) {
+        curl_easy_setopt(http_put_handle, CURLOPT_DEBUGFUNCTION, &debug_func);
+        curl_easy_setopt(http_put_handle, CURLOPT_VERBOSE, 1L);
+    }
+    
+    if (my_config.do_not_verify_peer) {
+        curl_easy_setopt(http_put_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+    }
+    
     /* enable uploading */
     curl_easy_setopt(http_put_handle, CURLOPT_UPLOAD, 1L);
 
@@ -364,7 +415,7 @@ void *worker_thread(void *threadid)
     do {
         poll();
         if (no_of_handles_running == 0) {
-            CURLY_LOG("Wait for next job");
+            CURLY_LOG("Wait for next job.");
             pthread_mutex_lock(&mutex);
             pthread_cond_wait(&cv, &mutex);
             CURLY_LOG("Job received");
