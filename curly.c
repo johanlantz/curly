@@ -271,6 +271,15 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
 
     if (my_config.do_not_verify_peer) {
         curl_easy_setopt(http_get_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+        CURLY_LOG("Warning: VERIFYPEER turned off");
+    } else {
+        if (my_config.certificate_path != NULL) {
+            easy_status = curl_easy_setopt(http_get_handle, CURLOPT_CAINFO, my_config.certificate_path);
+            if (easy_status != CURLE_OK) {
+                CURLY_LOG("Error: Failed to add certificate bundle: %s. \nPeer Verification will not be enabled.", my_config.certificate_path);
+                curl_easy_setopt(http_get_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+            }
+        }
     }
 
     if(my_config.log_options != 0) {
@@ -344,6 +353,15 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, ch
     
     if (my_config.do_not_verify_peer) {
         curl_easy_setopt(http_put_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+        CURLY_LOG("Warning: VERIFYPEER turned off");
+    } else {
+        if (my_config.certificate_path != NULL) {
+            easy_status = curl_easy_setopt(http_put_handle, CURLOPT_CAINFO, my_config.certificate_path);
+            if (easy_status != CURLE_OK) {
+                CURLY_LOG("Error: Failed to add certificate bundle: %s. \nPeer Verification will not be enabled.", my_config.certificate_path);
+                curl_easy_setopt(http_put_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+            }
+        }
     }
     
     /* enable uploading */
