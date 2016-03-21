@@ -103,6 +103,10 @@ void init_curl_if_needed()
 	}
 }
 
+void curly_config_default(curly_config* cfg) {
+    memset(cfg, 0, sizeof(curly_config));
+}
+
 void curly_init(curly_config* cfg) {
     memcpy(&my_config, cfg, sizeof(curly_config));
     CURLY_LOG("Starting curly \nlog_options=%d and log_cb=0x%p \ndo_not_verify_peer=%d certificate_path=%s", my_config.log_options, my_config.log_cb, my_config.do_not_verify_peer, my_config.certificate_path != NULL ? my_config.certificate_path : "No certificate path provided");

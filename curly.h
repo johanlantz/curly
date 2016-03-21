@@ -76,6 +76,15 @@ typedef struct curly_config{
 } curly_config;
     
 /**
+ * Assign default values to the curly configuration.
+ * Recoemmended to call before assigning your own custom parameters.
+ *
+ * @param cfg               The configuration
+ *
+ */
+void curly_config_default(curly_config* cfg);
+    
+/**
  * Initialize curly
  * Unless you want to provide a config with non default values
  * this method is optional.
