@@ -1,3 +1,9 @@
 [submodule "third-party/googletest"]
 	path = third-party/googletest
 	url = https://github.com/google/googletest
+[submodule "third-party/manual_build/curl"]
+	path = third-party/manual_build/curl
+	url = https://github.com/bagder/curl.git
+[submodule "third-party/manual_build/openssl"]
+	path = third-party/manual_build/openssl
+	url = https://github.com/openssl/openssl.git
