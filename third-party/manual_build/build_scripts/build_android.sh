@@ -133,7 +133,10 @@ for p in ${PLATFORMS[*]}; do
 
 done
 
-#Copying cURL headers
+#Copy openssl headers
+cp -R $SSLPATH/include $SCRIPTPATH/../../openssl/android/
+
+#Copy cURL headers
 cp -R $CURLPATH/include $DESTDIR/
 rm $DESTDIR/include/curl/.gitignore
 
