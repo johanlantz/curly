@@ -109,19 +109,22 @@ fi
 PLATFORMS=(arm64-v8a x86_64 mips64 armeabi armeabi-v7a x86 mips)
 DESTDIR=$SCRIPTPATH/../../curl/android
 
+rm -rf $SCRIPTPATH/../../curl/android/
+rm -rf $SCRIPTPATH/../../openssl/android/
+
 for p in ${PLATFORMS[*]}; do 
   mkdir -p $DESTDIR/$p
   STRIP=$($SCRIPTPATH/ndk-which strip $p)
   
   SRC=$SCRIPTPATH/obj/local/$p/libcurl.a
   DEST=$DESTDIR/$p/libcurl.a
-
-  if [ -z "$STRIP" ]; then
-    echo "WARNING: Could not find 'strip' for $p"
-    cp $SRC $DEST
-  else
-    $STRIP $SRC --strip-debug -o $DEST
-  fi
+  cp $SRC $DEST
+  #if [ -z "$STRIP" ]; then
+  #  echo "WARNING: Could not find 'strip' for $p"
+  #  cp $SRC $DEST
+  #else
+  #  $STRIP $SRC --strip-debug -o $DEST
+  #fi
 
   #copy openssl files to proper location
   mkdir -p $SCRIPTPATH/../../openssl/android/$p
