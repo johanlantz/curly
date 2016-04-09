@@ -134,7 +134,7 @@ for p in ${PLATFORMS[*]}; do
 done
 
 #Copy openssl headers
-cp -R -H $SSLPATH/include $SCRIPTPATH/../../openssl/android/
+cp -L -R $SSLPATH/include $SCRIPTPATH/../../openssl/android/
 
 #Copy cURL headers
 cp -R $CURLPATH/include $DESTDIR/
