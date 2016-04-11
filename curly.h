@@ -121,7 +121,7 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
  *
  * @return                  Transaction handle as defined by #curly_http_transaction_handle
  */
-curly_http_transaction_handle curly_http_put(char* url, void* data, int size, char* headers_json, void* cb);
+curly_http_transaction_handle curly_http_put(char* url, void* data, long size, char* headers_json, void* cb);
 
 #ifdef __cplusplus
 }

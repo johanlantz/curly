@@ -57,8 +57,8 @@ static int debug_func(CURL *handle, curl_infotype type,
 
 typedef struct {
     char* data;
-    int size;
-    unsigned size_left;
+    long size;
+    long size_left;
 	void (*on_http_request_completed)(curly_http_transaction_handle handle, int http_response_code, void* data, int size);
     curly_http_transaction_handle* handle;
     struct curl_slist* headers;
@@ -90,7 +90,7 @@ void curly_dispose()
     stop_worker_thread();
 }
 
-curly_http_transaction* create_transaction(void* data, int size, void* cb)
+curly_http_transaction* create_transaction(void* data, long size, void* cb)
 {
 	CURL *curl_handle = NULL;
 	curly_http_transaction* transaction = (curly_http_transaction*)calloc(1, sizeof(curly_http_transaction));
@@ -307,7 +307,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
     return bytes_read;
 }
 
-curly_http_transaction_handle curly_http_put(char* url, void* data, int size, char* headers_json, void* cb)
+curly_http_transaction_handle curly_http_put(char* url, void* data, long size, char* headers_json, void* cb)
 {
 	CURLcode easy_status = CURLE_OK;
     CURLMcode status = CURLM_OK;
@@ -339,10 +339,8 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, int size, ch
     
     /* enable uploading */
     curl_easy_setopt(http_put_handle, CURLOPT_UPLOAD, 1L);
-
-    /* HTTP PUT please */
-    curl_easy_setopt(http_put_handle, CURLOPT_PUT, 1L);
-
+    curl_easy_setopt(http_put_handle, CURLOPT_INFILESIZE, size);
+    
     /* we want to use our own read function */
     curl_easy_setopt(http_put_handle, CURLOPT_READFUNCTION, read_callback);
 
