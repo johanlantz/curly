@@ -36,7 +36,7 @@ typedef void* curly_http_transaction_handle;
  * @param data                  Retrieved data in the case of a GET operation
  * @param size                  Size of the data in bytes
  */
-typedef	void(*on_http_request_completed)(curly_http_transaction_handle handle, int http_response_code, void* data, int size);
+typedef	void(*on_http_request_completed)(curly_http_transaction_handle handle, long http_response_code, void* data, long size);
 
 typedef struct curly_config{
     /**

@@ -59,7 +59,7 @@ typedef struct {
     char* data;
     long size;
     long size_left;
-	void (*on_http_request_completed)(curly_http_transaction_handle handle, int http_response_code, void* data, int size);
+	void (*on_http_request_completed)(curly_http_transaction_handle handle, long http_response_code, void* data, long size);
     curly_http_transaction_handle* handle;
     struct curl_slist* headers;
 } curly_http_transaction;
@@ -165,7 +165,7 @@ static int poll() {
 			curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &http_response_code);
             
 			if (transaction->on_http_request_completed) {
-				transaction->on_http_request_completed(transaction->handle, (int)http_response_code, transaction->data, transaction->size);
+				transaction->on_http_request_completed(transaction->handle, http_response_code, transaction->data, transaction->size);
 			}
 			
             //TODO, how handle retries of failed transactions
@@ -288,7 +288,7 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
 static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
 {
     curly_http_transaction *transaction = (curly_http_transaction*)userp;
-    int bytes_read = 0;
+    long bytes_read = 0;
     CURLY_LOG("We are asked to provide at most %lu bytes", size*nmemb);
     if (size*nmemb < 1)
         return bytes_read;
