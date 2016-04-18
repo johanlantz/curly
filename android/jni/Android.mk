@@ -8,7 +8,7 @@ include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := crypto-prebuilt
-LOCAL_SRC_FILES := ../../third-party//openssl/android/$(TARGET_ARCH_ABI)/libcrypto.a
+LOCAL_SRC_FILES := ../../third-party/openssl/android/$(TARGET_ARCH_ABI)/libcrypto.a
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -36,6 +36,6 @@ LOCAL_SRC_FILES  := ../../curly.c
 LOCAL_LDLIBS     := -ldl -lz
 
 LOCAL_STATIC_LIBRARIES += gcc
-LOCAL_STATIC_LIBRARIES += opus-prebuilt ssl-prebuilt crypto-prebuilt curl-prebuilt
+LOCAL_STATIC_LIBRARIES += curl-prebuilt ssl-prebuilt crypto-prebuilt 
 
 include $(BUILD_SHARED_LIBRARY)
