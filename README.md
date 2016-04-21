@@ -12,14 +12,14 @@ As usual with native code in Android it's a bit more complex than for iOS. Basic
 
 ####Use Curly as a static library
 Use curly as a static lib together with libcrypto.a and libssl.a inside yourexisting dynamic library by adding the instructions below to your Android.mk (the order of the libs is important):
-
+```
 include $(CLEAR_VARS)
 LOCAL_MODULE := curl-prebuilt
 LOCAL_SRC_FILES := PATH_TO_CURLY/third-party/curl/android/$(TARGET_ARCH_ABI)/libcurl.a
 include $(PREBUILT_STATIC_LIBRARY)
 LOCAL_C_INCLUDES += PATH_TO_CURLY/third-party/ PATH_TO_CURLY/third-party/curl/android/include
 LOCAL_STATIC_LIBRARIES += curl-prebuilt ssl-prebuilt crypto-prebuilt
-
+```
 Also keep in mind that if you intend to share the openssl lib with one or more projects in the same .so you can not initialize openssl more than once and you might have threading issues between the openssl users (there is plenty of information about this if you google for it). If you do not have another lib relying on openssl in the same .so you will have no issues, just link with the existing crypto libs on the android device or preferably with your own or the precompiled ones you find in the third-party folder since old Android versions have very old OpenSSL libs installed.
 
 ####Use Curly as a dynamic library
