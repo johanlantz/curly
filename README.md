@@ -2,14 +2,14 @@
 Curly is a high level API for libcurl intended to simplify the common usecase of performing memory based http operations. 
 
 ##Usage
-###Simple put or get
+####Simple put or get
 If you have a basic use-case even the curly_init() function is optional and you perform PUT or GET as easy as:
 ```
 char* data = "test";
 curly_http_get("https://httpbin.org", NULL, NULL);
 curly_http_put("https://httpbin.org/put/", data, strlen(data), NULL, NULL);
 ```
-###Using http headers
+####Using http headers
 Header manipulation is done with a json array, for instance like this:
 ```
 char* headers = "{\"Accept\":\"text/plain\"}";
