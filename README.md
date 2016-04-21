@@ -1,6 +1,11 @@
 # curly
-Curly is a drop in extension of curl simplifying the usescases of GET, PUT and POST operations from memory buffers.
+Curly is a high level API for libcurl intended to simplify the common usecase of performing memory based http operations. 
 
+##Usage
+If you have a basic use-case even the curly_init() function is optional and you can move directly to performing a PUT or GET as easy as:
+```
+curly_http_put(uri, data, strlen(data), NULL, NULL);
+```
 ##Installation
 There are several ways to use curly depending on your platform and requirements.
 
