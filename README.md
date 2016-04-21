@@ -24,24 +24,24 @@ Also keep in mind that if you intend to share the openssl lib with one or more p
 
 ####Use Curly as a dynamic library
 This is a good option if you have other native libraries and you want to add http support. The prebuilt libcurly.so can be found in the android folder and it is already encapsulating libcrypto, libssl and libcurl. To add it to your existing .so project you would have to add the following in your Android.mk:
-
+```
 include $(CLEAR_VARS)
 LOCAL_MODULE := curly-prebuilt
 LOCAL_SRC_FILES := PATH_TO_CURLY/third-party/curly/android/libs/$(TARGET_ARCH_ABI)/libcurly.so
 include $(PREBUILT_SHARED_LIBRARY)
 LOCAL_C_INCLUDES + PATH_TO_CURLY/
 LOCAL_SHARED_LIBRARIES += curly-prebuilt 
-
+```
 Simply add curly.h and curly.c to your existing project and use the simple api in curly.h instead of the native curl api.
 
 ###Unit tests
 Unit tests using Google Test are provided as well as a pre-made solution for Visual Studio. 
 
 Do not forget to run:
-
+```
 git submodule init
-
 git submodule update
+```
 
 in order to fetch the submodules needed for the unittests.
 
