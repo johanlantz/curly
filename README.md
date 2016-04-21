@@ -32,7 +32,9 @@ include $(PREBUILT_SHARED_LIBRARY)
 LOCAL_C_INCLUDES + PATH_TO_CURLY/
 LOCAL_SHARED_LIBRARIES += curly-prebuilt 
 ```
-Simply add curly.h and curly.c to your existing project and use the simple api in curly.h instead of the native curl api.
+
+###Windows
+The simplest approach is to just add curly.h and curly.c to your existing project and then poijt Visual Studio to your prebuilt curl and openssl libs (they are also provided in the third-party folder here). 
 
 ###Unit tests
 Unit tests using Google Test are provided as well as a pre-made solution for Visual Studio. 
@@ -43,7 +45,7 @@ git submodule init
 git submodule update
 ```
 
-in order to fetch the submodules needed for the unittests.
+in order to fetch the GTest submodule needed for the unittests.
 
 ####Visual Studio conversion of gtest solution
 If you want to use the gtest unit-tests and Visual Studio says the gtest-md.sln file can not be converted to your version of Visual Studio you must first open the gtest-md.sln solution manually so the conversion can be performed. Then just open the CurlyTest.sln file and it should be ok.
