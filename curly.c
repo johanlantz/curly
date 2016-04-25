@@ -99,14 +99,16 @@ curly_http_transaction* create_transaction(void* data, long size, void* cb)
 	}
 
 	init_curl_if_needed();
-    transaction->data = malloc(size);
-	if (transaction->data == NULL) {
-		return NULL;
-	}
+    if (size > 0 && data != NULL) {
+        transaction->data = malloc(size);
+        if (transaction->data == NULL) {
+            CURLY_LOG("Error: Failed to allocate memory for transaction");
+            return NULL;
+        } else {
+           memcpy(transaction->data, data, size);
+        }
+    }
 
-	if (data != NULL) {
-		memcpy(transaction->data, data, size);
-	}
     transaction->size = size;
     transaction->size_left = size;
     curl_handle = curl_easy_init();
@@ -233,9 +235,13 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
 {
 	CURLcode easy_status = CURLE_OK;
     CURLMcode status = CURLM_OK;
-    
+    CURL *http_get_handle;
     curly_http_transaction* transaction = create_transaction(NULL, 0, cb);
-    CURL *http_get_handle = transaction->handle;
+    if (transaction == NULL) {
+        CURLY_LOG("Error: Failed to create curly transaction. The GET operation can not be performed");
+        return NULL;
+    }
+    http_get_handle = transaction->handle;
 
     CURLY_LOG("Starting http GET to %s", url);
     
@@ -311,8 +317,14 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, long size, c
 {
 	CURLcode easy_status = CURLE_OK;
     CURLMcode status = CURLM_OK;
+    CURL *http_put_handle;
     curly_http_transaction* transaction = create_transaction(data, size, cb);
-    CURL *http_put_handle = transaction->handle;
+    if (transaction == NULL) {
+        CURLY_LOG("Error: Failed to create curly transaction. The PUT operation can not be performed");
+        return NULL;
+    }
+    
+    http_put_handle = transaction->handle;
 
     CURLY_LOG("Starting http PUT to %s", url);
     
