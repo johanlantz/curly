@@ -15,6 +15,7 @@ Pod::Spec.new do |s|
   
   s.pod_target_xcconfig = {
     "HEADER_SEARCH_PATHS" => '"$(PODS_ROOT)/curly/third-party/curl/ios/include"',
+    "LIBRARY_SEARCH_PATHS" => '$(inherited) "$(PODS_ROOT)/curly/third-party/curl/ios/lib"'
   }
   
   s.user_target_xcconfig = {
@@ -22,6 +23,6 @@ Pod::Spec.new do |s|
     "ENABLE_BITCODE" => "NO"
   }
   
-  s.libraries = "curl"
+  s.libraries = "curl", "z"
   s.frameworks = "Foundation"
 end
