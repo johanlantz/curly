@@ -83,11 +83,11 @@ void curly_init(curly_config* cfg) {
 
 void curly_dispose()
 {
+    stop_worker_thread();
     memset(&my_config, 0, sizeof(curly_config));
     curl_multi_cleanup(multi_handle);
     curl_global_cleanup();
 	multi_handle = NULL;
-    stop_worker_thread();
 }
 
 curly_http_transaction* create_transaction(void* data, long size, void* cb)
@@ -419,12 +419,15 @@ void *worker_thread(void *threadid)
             CURLY_LOG("Wait for next job.");
             pthread_mutex_lock(&mutex);
             pthread_cond_wait(&cv, &mutex);
-            CURLY_LOG("Job received");
+            if (RUN_THREAD) {
+                CURLY_LOG("Job received");
+            } else {
+                CURLY_LOG("Shutdown signal received");
+            }
             pthread_mutex_unlock(&mutex);
         }
     } while (RUN_THREAD);
     CURLY_LOG("Worker thread about to exit.");
-    RUN_THREAD = 0;
     pthread_exit(NULL);
     
 }
@@ -449,5 +452,8 @@ void stop_worker_thread() {
     pthread_mutex_lock(&mutex);
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&mutex);
+    CURLY_LOG("Waiting for thread to join");
+    pthread_join(thread, NULL);
+    CURLY_LOG("Thread has joined. Curly has shutdown.");
 }
 #endif
