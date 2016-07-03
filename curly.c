@@ -18,6 +18,10 @@ static int RUN_THREAD = 0;
 
 struct curly_config my_config = {NULL, 0};
 
+//Forward declare platform specific thread functions
+void create_worker_thread();
+void signal_worker_thread();
+
 #define LOG_MAX_BUF_SIZE 512
 static void CURLY_LOG(const char* format, ...)
 {
@@ -69,6 +73,7 @@ void init_curl_if_needed()
 	if (multi_handle == NULL) {
 		curl_global_init(CURL_GLOBAL_ALL);
 		multi_handle = curl_multi_init();
+        create_worker_thread();
 	}
 }
 
@@ -79,6 +84,7 @@ void curly_config_default(curly_config* cfg) {
 void curly_init(curly_config* cfg) {
     memcpy(&my_config, cfg, sizeof(curly_config));
     CURLY_LOG("Starting curly \nlog_options=%d and log_cb=0x%p \ndo_not_verify_peer=%d certificate_path=%s", my_config.log_options, my_config.log_cb, my_config.do_not_verify_peer, my_config.certificate_path != NULL ? my_config.certificate_path : "No certificate path provided");
+    init_curl_if_needed();
 }
 
 void curly_dispose()
@@ -92,17 +98,16 @@ void curly_dispose()
 
 curly_http_transaction* create_transaction(void* data, long size, void* cb)
 {
-	CURL *curl_handle = NULL;
 	curly_http_transaction* transaction = (curly_http_transaction*)calloc(1, sizeof(curly_http_transaction));
 	if (transaction == NULL) {
 		return NULL;
 	}
 
-	init_curl_if_needed();
     if (size > 0 && data != NULL) {
         transaction->data = malloc(size);
         if (transaction->data == NULL) {
             CURLY_LOG("Error: Failed to allocate memory for transaction");
+            free(transaction);
             return NULL;
         } else {
            memcpy(transaction->data, data, size);
@@ -111,12 +116,12 @@ curly_http_transaction* create_transaction(void* data, long size, void* cb)
 
     transaction->size = size;
     transaction->size_left = size;
-    curl_handle = curl_easy_init();
-    if (!curl_handle) {
+    transaction->handle = curl_easy_init();
+    if (!transaction->handle) {
         free(transaction->data);
+        free(transaction);
         return NULL;
     }
-    transaction->handle = curl_handle;
 	transaction->on_http_request_completed = cb;
     
     transaction->headers = NULL;
@@ -286,7 +291,7 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
         return NULL;
     }
 
-	start_worker_thread_if_needed();
+	signal_worker_thread();
     return transaction;
 }
 
@@ -374,7 +379,7 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, long size, c
         return NULL;
     }
 
-	start_worker_thread_if_needed();
+	signal_worker_thread();
     return transaction;
 }
 
@@ -395,11 +400,16 @@ DWORD WINAPI worker_thread(LPVOID lpParam)
 	thread_handle = NULL;
 	return 0;
 }
-void start_worker_thread_if_needed() {
-	if (thread_handle == NULL) {
-		CURLY_LOG("starting worker thread");
-		thread_handle = CreateThread(NULL, 0, worker_thread, NULL, 0, NULL);
-	}
+
+void create_worker_thread() {
+    if (thread_handle == NULL) {
+        CURLY_LOG("starting worker thread");
+        thread_handle = CreateThread(NULL, 0, worker_thread, NULL, 0, NULL);
+    }
+}
+
+void signal_worker_thread() {
+    CURLY_LOG("TODO, IMPLEMENT WaitForSingleObject for Win32");
 }
 
 void stop_worker_thread() {
@@ -431,16 +441,18 @@ void *worker_thread(void *threadid)
     pthread_exit(NULL);
     
 }
-void start_worker_thread_if_needed() {
-    if (RUN_THREAD == 0) {
-        int rc = pthread_create(&thread, NULL, worker_thread, NULL);
-        if (rc){
-            CURLY_LOG("ERROR; return code from pthread_create() is %d", rc);
-            return;
-        } else {
-            CURLY_LOG("Starting posix worker thread");
-        }
+void create_worker_thread() {
+   
+    int rc = pthread_create(&thread, NULL, worker_thread, NULL);
+    if (rc){
+        CURLY_LOG("ERROR; return code from pthread_create() is %d", rc);
+        return;
+    } else {
+        CURLY_LOG("Starting posix worker thread");
     }
+}
+
+void signal_worker_thread() {
     pthread_mutex_lock(&mutex);
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&mutex);
