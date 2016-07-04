@@ -50,5 +50,6 @@ int main(int argc, const char * argv[]) {
     }
 
     getchar();
+    curly_dispose();
     return 0;
 }
