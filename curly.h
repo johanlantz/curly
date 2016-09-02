@@ -85,9 +85,7 @@ typedef struct curly_config{
 void curly_config_default(curly_config* cfg);
     
 /**
- * Initialize curly
- * Unless you want to provide a config with non default values
- * this method is optional.
+ * Initialize curly. Needed once on startup
  *
  * @param cfg               The configuration
  *
@@ -95,7 +93,7 @@ void curly_config_default(curly_config* cfg);
 void curly_init(curly_config* cfg);
     
 /**
- * Dispose curly
+ * Dispose curly. Needed once on shutdown
  */
 void curly_dispose();
 
