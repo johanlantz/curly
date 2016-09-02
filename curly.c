@@ -16,7 +16,7 @@ static CURLM *multi_handle = NULL;
 static int no_of_handles_running;
 static int RUN_THREAD = 0;
 
-struct curly_config my_config = {NULL, 0};
+struct curly_config my_config = {NULL, 0, 0, NULL};
 
 //Forward declare platform specific thread functions
 void create_worker_thread();
@@ -82,7 +82,15 @@ void curly_config_default(curly_config* cfg) {
 }
 
 void curly_init(curly_config* cfg) {
+    //Release allocated memory in case the user calls curly_init without dispose
+    if (my_config.certificate_path != NULL) {
+        free(my_config.certificate_path);
+        my_config.certificate_path = NULL;
+    }
     memcpy(&my_config, cfg, sizeof(curly_config));
+    if (cfg->certificate_path && (my_config.certificate_path = strdup(cfg->certificate_path)) == NULL) {
+        CURLY_LOG("Error: Failed to duplicate certificate path. Certificate checks will not work.");
+    }
     CURLY_LOG("Starting curly \nlog_options=%d and log_cb=0x%p \ndo_not_verify_peer=%d certificate_path=%s", my_config.log_options, my_config.log_cb, my_config.do_not_verify_peer, my_config.certificate_path != NULL ? my_config.certificate_path : "No certificate path provided");
     init_curl_if_needed();
 }
@@ -90,6 +98,10 @@ void curly_init(curly_config* cfg) {
 void curly_dispose()
 {
     stop_worker_thread();
+    if (my_config.certificate_path != NULL) {
+        free(my_config.certificate_path);
+        my_config.certificate_path = NULL;
+    }
     memset(&my_config, 0, sizeof(curly_config));
     curl_multi_cleanup(multi_handle);
     curl_global_cleanup();
