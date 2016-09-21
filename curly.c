@@ -200,7 +200,7 @@ static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* tr
     CURLcode easy_status = CURLE_OK;
     if(headers_json != NULL && strlen(headers_json) > 2) {
         char* walker_p = headers_json;
-        char header_buf[128];
+        char header_buf[1024];
         CURLY_LOG("Using customer headers %s", headers_json);
         if (*walker_p != '[' || *(walker_p + strlen(headers_json) -1) != ']')  {
             printf("Incorrect json array format. The json string must start with [ and end with ]");
