@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.license = { :type => "MIT", :file => "LICENSE" }
   s.author = "Johan Lantz"
   
-  s.platform = :ios, "7.0"
+  s.platform = :ios, "8.2"
   s.source = { :git => "https://github.com/johanlantz/curly.git", :tag => s.version.to_s }
   
   s.source_files  = "*.{h,c}"
