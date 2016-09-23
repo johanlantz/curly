@@ -9,6 +9,8 @@ LOCAL_CFLAGS += -g
 NDK_DEBUG=1
 #################
 
+APP_STL := c++_shared
+
 # The architectures you would like to build for
 APP_ABI := armeabi armeabi-v7a x86
 #APP_ABI := armeabi
