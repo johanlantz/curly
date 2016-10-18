@@ -196,28 +196,39 @@ static int poll() {
 
 //Since the json array with the headers is really simple we do the parsing manually instead of adding a dependency
 //to an external parser like jsmn.
-static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* transaction, char* headers_json) {
+static void add_custom_headers(CURL *http_get_handle, curly_http_transaction* transaction, const char* headers_json) {
     CURLcode easy_status = CURLE_OK;
     if(headers_json != NULL && strlen(headers_json) > 2) {
-        char* walker_p = headers_json;
+        char* walker_p = (char*)headers_json;
         char header_buf[1024];
         CURLY_LOG("Using customer headers %s", headers_json);
-        if (*walker_p != '[' || *(walker_p + strlen(headers_json) -1) != ']')  {
-            printf("Incorrect json array format. The json string must start with [ and end with ]");
+        if (*walker_p != '{' || *(walker_p + strlen(headers_json) -1) != '}')  {
+            CURLY_LOG("Incorrect json format. The json string must start with { and end with }");
             return;
         }
-        walker_p = strstr(headers_json, "\"");
+       
         while (walker_p != NULL) {
-            char* end_p = strstr(walker_p+1, "\"");
+            int i = 0;
+            char* end_p = strstr(walker_p+1, ",\"");
             if (end_p == NULL) {
-                CURLY_LOG("Error: not closing \" found in array element");
-                return;
+                end_p = strstr(walker_p, "}");
+                if (end_p == NULL) {
+                    CURLY_LOG("Error: no closing } found in json string");
+                    return;
+                }
             }
             walker_p++;
-            strncpy(header_buf, walker_p, end_p-walker_p);
-            header_buf[end_p-walker_p] = '\0';
+            //We must strip out the "" from the json elements since the server does not like headers with ""
+            do {
+                if (*walker_p != '\"') {
+                    header_buf[i++] = *walker_p;
+                }
+                
+            } while(++walker_p != end_p);
+            header_buf[i] = '\0';
+            CURLY_LOG("Passing header %s to curl", header_buf);
             transaction->headers = curl_slist_append(transaction->headers, header_buf);
-            walker_p = strstr(end_p+1, "\"");
+            walker_p = strstr(end_p, ",\"");
         }
         easy_status = curl_easy_setopt(http_get_handle, CURLOPT_HTTPHEADER, transaction->headers);
         if (easy_status != CURLE_OK) {
@@ -248,7 +259,7 @@ static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdat
 	return realsize;
 }
 
-curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void* cb)
+curly_http_transaction_handle curly_http_get(const char* url, const char* headers_json, void* cb)
 {
 	CURLcode easy_status = CURLE_OK;
     CURLMcode status = CURLM_OK;
@@ -330,7 +341,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)
     return bytes_read;
 }
 
-curly_http_transaction_handle curly_http_put(char* url, void* data, long size, char* headers_json, void* cb)
+curly_http_transaction_handle curly_http_put(const char* url, void* data, long size, const char* headers_json, void* cb)
 {
 	CURLcode easy_status = CURLE_OK;
     CURLMcode status = CURLM_OK;
@@ -392,6 +403,72 @@ curly_http_transaction_handle curly_http_put(char* url, void* data, long size, c
     }
 
 	signal_worker_thread();
+    return transaction;
+}
+
+curly_http_transaction_handle curly_http_post(const char* url, void* data, long size, const char* headers_json, void* cb)
+{
+    CURLcode easy_status = CURLE_OK;
+    CURLMcode status = CURLM_OK;
+    CURL *http_post_handle;
+    curly_http_transaction* transaction = create_transaction(data, size, cb);
+    if (transaction == NULL) {
+        CURLY_LOG("Error: Failed to create curly transaction. The POST operation can not be performed");
+        return NULL;
+    }
+    
+    http_post_handle = transaction->handle;
+    
+    CURLY_LOG("Starting http POST to %s", url);
+    
+    /* set options */
+    curl_easy_setopt(http_post_handle, CURLOPT_URL, url);
+    
+    if(my_config.log_options != 0) {
+        curl_easy_setopt(http_post_handle, CURLOPT_DEBUGFUNCTION, &debug_func);
+        curl_easy_setopt(http_post_handle, CURLOPT_VERBOSE, 1L);
+    }
+    
+    if (my_config.do_not_verify_peer) {
+        curl_easy_setopt(http_post_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+        CURLY_LOG("Warning: VERIFYPEER turned off");
+    } else {
+        if (my_config.certificate_path != NULL) {
+            easy_status = curl_easy_setopt(http_post_handle, CURLOPT_CAINFO, my_config.certificate_path);
+            if (easy_status != CURLE_OK) {
+                CURLY_LOG("Error: Failed to add certificate bundle: %s. \nPeer Verification will not be enabled.", my_config.certificate_path);
+                curl_easy_setopt(http_post_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+            }
+        }
+    }
+    
+    /* enable uploading */
+    curl_easy_setopt(http_post_handle, CURLOPT_POST, 1L);
+    curl_easy_setopt(http_post_handle, CURLOPT_POSTFIELDSIZE, size);
+    curl_easy_setopt(http_post_handle, CURLOPT_INFILESIZE, size);
+    
+    /* we want to use our own read function */
+    curl_easy_setopt(http_post_handle, CURLOPT_READFUNCTION, read_callback);
+    
+    /* pointer to pass to our read function */
+    curl_easy_setopt(http_post_handle, CURLOPT_READDATA, transaction);
+    
+    /* Store our transaction pointer */
+    easy_status = curl_easy_setopt(http_post_handle, CURLOPT_PRIVATE, (void*)transaction);
+    if (easy_status != CURLE_OK) {
+        CURLY_LOG("Failed setting private data.");
+    }
+    
+    add_custom_headers(http_post_handle, transaction, headers_json);
+    
+    /* Add the easy handle to the multi handle */
+    status = curl_multi_add_handle(multi_handle, http_post_handle);
+    if (status != CURLM_OK) {
+        CURLY_LOG("curl_multi_add_handle failed with error %d", status);
+        return NULL;
+    }
+    
+    signal_worker_thread();
     return transaction;
 }
 

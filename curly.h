@@ -106,10 +106,23 @@ void curly_dispose();
  * 
  * @return                  Transaction handle as defined by #curly_http_transaction_handle
  */
-curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void* cb);
+curly_http_transaction_handle curly_http_get(const char* url, const char* headers_json, void* cb);
     
 /**
  * Perform http put
+ * @param url               The complete url including http or https
+ * @param data              The data to send to the server
+ * @param size              Size of the data in bytes
+ * @param headers_json      Json document such as:
+ *                          {"Accept": "application/json","Content-Type": "application/json"}
+ * @param cb                Optional callback function as defined by #on_http_request_completed
+ *
+ * @return                  Transaction handle as defined by #curly_http_transaction_handle
+ */
+curly_http_transaction_handle curly_http_put(const char* url, void* data, long size, const char* headers_json, void* cb);
+    
+/**
+ * Perform http post
  * @param url               The complete url including http or https
  * @param data              The data to send to the server
  * @param size              Size of the data in bytes
@@ -119,7 +132,7 @@ curly_http_transaction_handle curly_http_get(char* url, char* headers_json, void
  *
  * @return                  Transaction handle as defined by #curly_http_transaction_handle
  */
-curly_http_transaction_handle curly_http_put(char* url, void* data, long size, char* headers_json, void* cb);
+curly_http_transaction_handle curly_http_post(const char* url, void* data, long size, const char* headers_json, void* cb);
 
 #ifdef __cplusplus
 }
