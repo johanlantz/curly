@@ -29,10 +29,15 @@ static void on_http_put_request_completed(curly_http_transaction_handle handle, 
     printf("http put completed for handle %p:\n with code=%ld\n", handle, http_response_code);
 }
 
+static void on_http_post_request_completed(curly_http_transaction_handle handle, long http_response_code, void* data, long size) {
+    printf("http post completed for handle %p:\n with code=%ld\n", handle, http_response_code);
+}
+
 int main(int argc, const char * argv[]) {
     printf("Starting curly!\n");
     curly_config my_cfg;
     int loops = (argc >= 3) ? atoi(argv[2]) : 1;
+    char* headers = "{\"Accept\":\"application/json\",\"Content-Type\":\"application/json\",\"User-Agent\":\"App/Version (PM; Apple; iPhone7,2; iPhone OS; 10.1;)(uuid)\",\"X-Country-Code\":\"xx\",\"X-Device-Id\":\"ABCD\",\"X-User-MSISDN\":\"123456789\",\"Expect\":\"\",\"X-User-Version\":\"1.2.0\",\"X-Transaction-Id\":\"ABCDEF\"}";
     curly_config_default(&my_cfg);
     my_cfg.log_cb = &curly_log_msg_cb;
     //Valgrind complains about the logging callback
@@ -41,11 +46,15 @@ int main(int argc, const char * argv[]) {
     
     if (argv[1] != NULL && strcmp(argv[1], "put") == 0) {
         for (; loops > 0; loops--) {
-            curly_http_put("https://httpbin.org/put", "abcd", 4, NULL, &on_http_put_request_completed);
+            curly_http_put("https://httpbin.org/put", "abcd", 4, headers, &on_http_put_request_completed);
         }
-    } else {
+    } else if (argv[1] != NULL && strcmp(argv[1], "post") == 0) {
         for (; loops > 0; loops--) {
-            curly_http_get("http://google.com", NULL, &on_http_get_request_completed);
+            curly_http_post("https://httpbin.org/post", "abcd", 4, headers, &on_http_post_request_completed);
+        }
+    }else {
+        for (; loops > 0; loops--) {
+            curly_http_get("http://google.com", headers, &on_http_get_request_completed);
         }
     }
 
