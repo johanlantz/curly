@@ -294,6 +294,13 @@ curly_http_transaction_handle curly_http_get(const char* url, const char* header
         curl_easy_setopt(http_get_handle, CURLOPT_VERBOSE, 1L);
     }
 
+    if (my_config.no_signal) {
+        easy_status = curl_easy_setopt(http_get_handle, CURLOPT_NOSIGNAL, 1L);
+        if (easy_status != CURLE_OK) {
+            CURLY_LOG("Error: Failed to set CURLOPT_NOSIGNAL with error %d", easy_status);
+        }
+    }
+    
 	/* send all data to this function  */
 	curl_easy_setopt(http_get_handle, CURLOPT_WRITEFUNCTION, &write_callback);
 
@@ -377,6 +384,13 @@ curly_http_transaction_handle curly_http_put(const char* url, void* data, long s
         }
     }
     
+    if (my_config.no_signal) {
+        easy_status = curl_easy_setopt(http_put_handle, CURLOPT_NOSIGNAL, 1L);
+        if (easy_status != CURLE_OK) {
+            CURLY_LOG("Error: Failed to set CURLOPT_NOSIGNAL with error %d", easy_status);
+        }
+    }
+    
     /* enable uploading */
     curl_easy_setopt(http_put_handle, CURLOPT_UPLOAD, 1L);
     curl_easy_setopt(http_put_handle, CURLOPT_INFILESIZE, size);
@@ -439,6 +453,13 @@ curly_http_transaction_handle curly_http_post(const char* url, void* data, long 
                 CURLY_LOG("Error: Failed to add certificate bundle: %s. \nPeer Verification will not be enabled.", my_config.certificate_path);
                 curl_easy_setopt(http_post_handle, CURLOPT_SSL_VERIFYPEER, 0L);
             }
+        }
+    }
+    
+    if (my_config.no_signal) {
+        easy_status = curl_easy_setopt(http_post_handle, CURLOPT_NOSIGNAL, 1L);
+        if (easy_status != CURLE_OK) {
+            CURLY_LOG("Error: Failed to set CURLOPT_NOSIGNAL with error %d", easy_status);
         }
     }
     
