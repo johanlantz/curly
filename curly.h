@@ -73,6 +73,15 @@ typedef struct curly_config{
      *
      */
     char* certificate_path;
+    
+    /**
+     * If you are not using threaded resolver or c-ares this must be set to 1 or curl might crash if dns resolve timeouts.
+     * https://curl.haxx.se/libcurl/c/CURLOPT_NOSIGNAL.html
+     * https://curl.haxx.se/libcurl/c/threadsafe.html
+     *
+     * Default: 0
+     */
+    int no_signal;
 } curly_config;
     
 /**
