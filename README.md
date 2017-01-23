@@ -20,6 +20,8 @@ Removing default headers follows the normal libcurl way of working so the exampl
 char* headers = "{\"Accept\":}";
 curly_http_get("https://httpbin.org", headers, NULL);
 ```
+####Using ssl
+By default curly enables peer verification (see curl docs for VerifyPeer). You can disable this check by setting do_not_verify_peer to 1. For iOS/OS-X the DarwinSSL backend is used so there is no real reason to do that. For other platforms using OpenSSL you must provide a list of trusted Certificate Authorities (CA). This list might be available in the OS already or you have to construct it. For Android I have a gist here: https://gist.github.com/johanlantz/6c53af21723ac9adfd00
 
 ##Installation
 There are several ways to use curly depending on your platform and requirements.
